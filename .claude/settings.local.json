@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod +x /root/new_skill/home-control/scripts/home_control.py && ls -laR /root/new_skill/home-control)",
+      "Bash(python3 /root/new_skill/home-control/scripts/home_control.py --help)",
+      "Bash(python3 /root/new_skill/home-control/scripts/home_control.py light on)",
+      "Bash(python3 /root/new_skill/home-control/scripts/home_control.py 灯 亮度 80)",
+      "Bash(python3 /root/new_skill/home-control/scripts/home_control.py --mock ac temperature 24)",
+      "Bash(python3 /root/new_skill/home-control/scripts/home_control.py --mock 电视 音量 50)",
+      "Bash(python3 /root/new_skill/home-control/scripts/home_control.py --mock speaker play)",
+      "Bash(python3 /root/new_skill/home-control/scripts/home_control.py --mock 音箱 关)",
+      "Bash(chmod +x /root/new_skill/home-control/scripts/home_server.py)",
+      "Bash(chmod +x /root/new_skill/weather-query/scripts/weather_query.py)",
+      "Bash(python3 /root/new_skill/weather-query/scripts/weather_query.py now 北京 --mock)",
+      "Bash(python3 /root/new_skill/weather-query/scripts/weather_query.py 预报 上海 -d 3 --mock)",
+      "Bash(python3 /root/new_skill/weather-query/scripts/weather_query.py 空气 深圳 --mock)",
+      "Bash(python3 /root/new_skill/weather-query/scripts/weather_query.py 建议 广州 --mock)",
+      "Bash(python3 /root/new_skill/weather-query/scripts/weather_query.py --help)",
+      "Bash(chmod +x /root/new_skill/schedule-manager/scripts/schedule_manager.py)",
+      "Bash(python3 /root/new_skill/schedule-manager/scripts/schedule_manager.py reminder \"14:30\" \"参加项目会议\")",
+      "Bash(python3 /root/new_skill/schedule-manager/scripts/schedule_manager.py 闹钟 \"07:00\" \"起床\")",
+      "Bash(python3 /root/new_skill/schedule-manager/scripts/schedule_manager.py timer 30m \"休息一下\")",
+      "Bash(python3 /root/new_skill/schedule-manager/scripts/schedule_manager.py memo \"WiFi密码: abc123\")",
+      "Bash(python3 /root/new_skill/schedule-manager/scripts/schedule_manager.py 备忘 \"记得买生日礼物\" --category \"重要\")",
+      "Bash(python3 /root/new_skill/schedule-manager/scripts/schedule_manager.py list --all)",
+      "Bash(python3 /root/new_skill/schedule-manager/scripts/schedule_manager.py today)",
+      "Bash(python3 /root/new_skill/schedule-manager/scripts/schedule_manager.py search \"礼物\")",
+      "Bash(python3 /root/new_skill/schedule-manager/scripts/schedule_manager.py complete 1)",
+      "Bash(python3 /root/new_skill/schedule-manager/scripts/schedule_manager.py delete 4)",
+      "Bash(python3 /root/new_skill/schedule-manager/scripts/schedule_manager.py --help)"
+    ]
+  }
+}

@@ -45,6 +45,12 @@
 | `/ac` | 空调控制 | `on`, `off`, `temperature` |
 | `/tv` | 电视控制 | `on`, `off`, `volume` |
 | `/speaker` | 音箱控制 | `on`, `off`, `play`, `volume` |
+| `/lock` | 智能门锁控制 | `unlock`, `lock`, `password` |
+| `/vacuum` | 扫地机器人控制 | `on`, `off`, `mode` |
+| `/purifier` | 空气净化器控制 | `on`, `off`, `speed` |
+| `/fan` | 风扇控制 | `on`, `off`, `speed`, `oscillate` |
+| `/plug` | 智能插座控制 | `on`, `off` |
+| `/switch` | 智能开关控制 | `on`, `off` |
 
 ---
 
@@ -177,6 +183,147 @@
 ```
 - `value` 范围：0-100
 
+#### 5. 智能门锁控制 (`/lock`)
+
+**开锁**
+```json
+{
+    "action": "unlock"
+}
+```
+
+**关锁**
+```json
+{
+    "action": "lock"
+}
+```
+
+**修改密码**
+```json
+{
+    "action": "password",
+    "value": "654321"
+}
+```
+- `value` 范围：4-8位数字
+
+#### 6. 扫地机器人控制 (`/vacuum`)
+
+**启动清扫**
+```json
+{
+    "action": "on"
+}
+```
+
+**停止清扫/回充**
+```json
+{
+    "action": "off"
+}
+```
+
+**设置清扫模式**
+```json
+{
+    "action": "mode",
+    "value": 1
+}
+```
+- `value` 范围：1-3（1=扫地, 2=拖地, 3=扫拖一体）
+
+#### 7. 空气净化器控制 (`/purifier`)
+
+**开启净化器**
+```json
+{
+    "action": "on"
+}
+```
+
+**关闭净化器**
+```json
+{
+    "action": "off"
+}
+```
+
+**设置风速**
+```json
+{
+    "action": "speed",
+    "value": 3
+}
+```
+- `value` 范围：1-5
+
+#### 8. 风扇控制 (`/fan`)
+
+**开启风扇**
+```json
+{
+    "action": "on"
+}
+```
+
+**关闭风扇**
+```json
+{
+    "action": "off"
+}
+```
+
+**设置风速**
+```json
+{
+    "action": "speed",
+    "value": 2
+}
+```
+- `value` 范围：1-3
+
+**设置摇头**
+```json
+{
+    "action": "oscillate",
+    "value": 1
+}
+```
+- `value` 范围：0=关闭, 1=开启
+
+#### 9. 智能插座控制 (`/plug`)
+
+**开启插座**
+```json
+{
+    "action": "on"
+}
+```
+
+**关闭插座**
+```json
+{
+    "action": "off"
+}
+```
+
+#### 10. 智能开关控制 (`/switch`)
+
+**开启开关**
+```json
+{
+    "action": "on"
+}
+```
+
+**关闭开关**
+```json
+{
+    "action": "off"
+}
+```
+
 ---
 
 ## 响应格式
@@ -248,16 +395,30 @@ def validate_request(device: str, action: str, value: Optional[int]) -> tuple[bo
         "ac": ["on", "off", "temperature"],
         "tv": ["on", "off", "volume"],
         "speaker": ["on", "off", "play", "volume"],
+        "lock": ["unlock", "lock", "password"],
+        "vacuum": ["on", "off", "mode"],
+        "purifier": ["on", "off", "speed"],
+        "fan": ["on", "off", "speed", "oscillate"],
+        "plug": ["on", "off"],
+        "switch": ["on", "off"],
     }
 
     # 需要数值的动作
-    VALUE_REQUIRED_ACTIONS = ["brightness", "temperature", "volume"]
+    VALUE_REQUIRED_ACTIONS = ["brightness", "temperature", "volume", "password", "mode", "speed", "oscillate"]
 
     # 数值范围
     VALUE_RANGES = {
         "brightness": (0, 100),
         "temperature": (16, 30),
         "volume": (0, 100),
+        "mode": (1, 3),
+        "oscillate": (0, 1),
+    }
+
+    # 按设备区分的数值范围
+    DEVICE_VALUE_RANGES = {
+        ("fan", "speed"): (1, 3),
+        ("purifier", "speed"): (1, 5),
     }
 
     # 验证动作是否支持
@@ -268,7 +429,14 @@ def validate_request(device: str, action: str, value: Optional[int]) -> tuple[bo
     if action in VALUE_REQUIRED_ACTIONS:
         if value is None:
             return False, f"动作 '{action}' 需要提供数值参数"
-        min_val, max_val = VALUE_RANGES[action]
+        # 优先使用按设备区分的范围
+        range_key = (device, action)
+        if range_key in DEVICE_VALUE_RANGES:
+            min_val, max_val = DEVICE_VALUE_RANGES[range_key]
+        elif action in VALUE_RANGES:
+            min_val, max_val = VALUE_RANGES[action]
+        else:
+            return True, ""
         if not (min_val <= value <= max_val):
             return False, f"数值必须在 {min_val} 到 {max_val} 之间"
 
@@ -337,14 +505,27 @@ DEVICE_ACTIONS = {
     "ac": ["on", "off", "temperature"],
     "tv": ["on", "off", "volume"],
     "speaker": ["on", "off", "play", "volume"],
+    "lock": ["unlock", "lock", "password"],
+    "vacuum": ["on", "off", "mode"],
+    "purifier": ["on", "off", "speed"],
+    "fan": ["on", "off", "speed", "oscillate"],
+    "plug": ["on", "off"],
+    "switch": ["on", "off"],
 }
 
-VALUE_REQUIRED_ACTIONS = ["brightness", "temperature", "volume"]
+VALUE_REQUIRED_ACTIONS = ["brightness", "temperature", "volume", "password", "mode", "speed", "oscillate"]
 
 VALUE_RANGES = {
     "brightness": (0, 100, "亮度"),
     "temperature": (16, 30, "温度"),
     "volume": (0, 100, "音量"),
+    "mode": (1, 3, "模式"),
+    "oscillate": (0, 1, "摇头"),
+}
+
+DEVICE_VALUE_RANGES = {
+    ("fan", "speed"): (1, 3, "风速"),
+    ("purifier", "speed"): (1, 5, "风速"),
 }
 
 # 模拟设备状态（实际应用中应从硬件读取）
@@ -353,10 +534,16 @@ device_states = {
     "ac": {"power": False, "temperature": 24},
     "tv": {"power": False, "volume": 30},
     "speaker": {"power": False, "playing": False, "volume": 20},
+    "lock": {"locked": True, "password": "123456"},
+    "vacuum": {"power": False, "mode": 1, "battery": 80},
+    "purifier": {"power": False, "speed": 1, "pm25": 35},
+    "fan": {"power": False, "speed": 1, "oscillating": False},
+    "plug": {"power": False},
+    "switch": {"power": False},
 }
 
 
-def validate_request(device: str, action: str, value: Optional[int]) -> tuple[bool, str, str]:
+def validate_request(device: str, action: str, value) -> tuple[bool, str, str]:
     """
     验证请求参数
     返回: (是否有效, 错误代码, 错误消息)
@@ -365,18 +552,33 @@ def validate_request(device: str, action: str, value: Optional[int]) -> tuple[bo
     if action not in DEVICE_ACTIONS.get(device, []):
         return False, "INVALID_ACTION", f"设备 '{device}' 不支持动作 '{action}'"
 
+    # 密码修改特殊验证
+    if action == "password":
+        if value is None:
+            return False, "MISSING_VALUE", "修改密码需要提供新密码"
+        pwd = str(value)
+        if not pwd.isdigit() or len(pwd) < 4 or len(pwd) > 8:
+            return False, "INVALID_VALUE", "密码必须为4-8位数字"
+        return True, "", ""
+
     # 验证数值参数
     if action in VALUE_REQUIRED_ACTIONS:
         if value is None:
             return False, "MISSING_VALUE", f"动作 '{action}' 需要提供数值参数"
-        min_val, max_val, name = VALUE_RANGES[action]
+        range_key = (device, action)
+        if range_key in DEVICE_VALUE_RANGES:
+            min_val, max_val, name = DEVICE_VALUE_RANGES[range_key]
+        elif action in VALUE_RANGES:
+            min_val, max_val, name = VALUE_RANGES[action]
+        else:
+            return True, "", ""
         if not (min_val <= value <= max_val):
             return False, "INVALID_VALUE", f"{name}值必须在 {min_val} 到 {max_val} 之间"
 
     return True, "", ""
 
 
-def execute_device_action(device: str, action: str, value: Optional[int]) -> Dict[str, Any]:
+def execute_device_action(device: str, action: str, value) -> Dict[str, Any]:
     """
     执行设备控制动作
     实际应用中，这里应该调用真实的硬件控制接口
@@ -397,6 +599,18 @@ def execute_device_action(device: str, action: str, value: Optional[int]) -> Dic
         state["volume"] = value
     elif action == "play":
         state["playing"] = True
+    elif action == "unlock":
+        state["locked"] = False
+    elif action == "lock":
+        state["locked"] = True
+    elif action == "password":
+        state["password"] = str(value)
+    elif action == "mode":
+        state["mode"] = value
+    elif action == "speed":
+        state["speed"] = value
+    elif action == "oscillate":
+        state["oscillating"] = bool(value)
 
     return state.copy()
 
@@ -451,6 +665,42 @@ def control_speaker():
     return handle_device_request("speaker")
 
 
+@app.route('/lock', methods=['POST'])
+def control_lock():
+    """智能门锁控制"""
+    return handle_device_request("lock")
+
+
+@app.route('/vacuum', methods=['POST'])
+def control_vacuum():
+    """扫地机器人控制"""
+    return handle_device_request("vacuum")
+
+
+@app.route('/purifier', methods=['POST'])
+def control_purifier():
+    """空气净化器控制"""
+    return handle_device_request("purifier")
+
+
+@app.route('/fan', methods=['POST'])
+def control_fan():
+    """风扇控制"""
+    return handle_device_request("fan")
+
+
+@app.route('/plug', methods=['POST'])
+def control_plug():
+    """智能插座控制"""
+    return handle_device_request("plug")
+
+
+@app.route('/switch', methods=['POST'])
+def control_switch():
+    """智能开关控制"""
+    return handle_device_request("switch")
+
+
 def handle_device_request(device: str):
     """通用设备请求处理"""
     # 解析请求
@@ -486,6 +736,12 @@ def handle_device_request(device: str):
             "temperature": f"温度已设置为 {value}°C",
             "volume": f"音量已设置为 {value}",
             "play": "开始播放",
+            "unlock": "门锁已打开",
+            "lock": "门锁已锁定",
+            "password": "门锁密码已修改",
+            "mode": f"扫地机器人模式已设置",
+            "speed": f"风速已设置为 {value}档",
+            "oscillate": f"摇头已{'开启' if value else '关闭'}",
         }
 
         response = create_response(
@@ -519,12 +775,18 @@ def index():
     """根路径信息"""
     return jsonify({
         "service": "Home Control Server",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "endpoints": {
             "/light": "灯光控制 (on/off/brightness)",
             "/ac": "空调控制 (on/off/temperature)",
             "/tv": "电视控制 (on/off/volume)",
             "/speaker": "音箱控制 (on/off/play/volume)",
+            "/lock": "智能门锁控制 (unlock/lock/password)",
+            "/vacuum": "扫地机器人控制 (on/off/mode)",
+            "/purifier": "空气净化器控制 (on/off/speed)",
+            "/fan": "风扇控制 (on/off/speed/oscillate)",
+            "/plug": "智能插座控制 (on/off)",
+            "/switch": "智能开关控制 (on/off)",
             "/health": "健康检查"
         }
     }), 200
@@ -552,14 +814,14 @@ from pydantic import BaseModel
 from typing import Optional
 import uvicorn
 
-app = FastAPI(title="Home Control Server", version="1.0.0")
+app = FastAPI(title="Home Control Server", version="2.0.0")
 
 
 # === 请求模型 ===
 
 class ControlRequest(BaseModel):
     action: str
-    value: Optional[int] = None
+    value: Optional[int | str] = None
 
 
 class ErrorResponse(BaseModel):
@@ -575,14 +837,27 @@ DEVICE_ACTIONS = {
     "ac": ["on", "off", "temperature"],
     "tv": ["on", "off", "volume"],
     "speaker": ["on", "off", "play", "volume"],
+    "lock": ["unlock", "lock", "password"],
+    "vacuum": ["on", "off", "mode"],
+    "purifier": ["on", "off", "speed"],
+    "fan": ["on", "off", "speed", "oscillate"],
+    "plug": ["on", "off"],
+    "switch": ["on", "off"],
 }
 
-VALUE_REQUIRED_ACTIONS = ["brightness", "temperature", "volume"]
+VALUE_REQUIRED_ACTIONS = ["brightness", "temperature", "volume", "password", "mode", "speed", "oscillate"]
 
 VALUE_RANGES = {
     "brightness": (0, 100, "亮度"),
     "temperature": (16, 30, "温度"),
     "volume": (0, 100, "音量"),
+    "mode": (1, 3, "模式"),
+    "oscillate": (0, 1, "摇头"),
+}
+
+DEVICE_VALUE_RANGES = {
+    ("fan", "speed"): (1, 3, "风速"),
+    ("purifier", "speed"): (1, 5, "风速"),
 }
 
 device_states = {
@@ -590,12 +865,18 @@ device_states = {
     "ac": {"power": False, "temperature": 24},
     "tv": {"power": False, "volume": 30},
     "speaker": {"power": False, "playing": False, "volume": 20},
+    "lock": {"locked": True, "password": "123456"},
+    "vacuum": {"power": False, "mode": 1, "battery": 80},
+    "purifier": {"power": False, "speed": 1, "pm25": 35},
+    "fan": {"power": False, "speed": 1, "oscillating": False},
+    "plug": {"power": False},
+    "switch": {"power": False},
 }
 
 
 # === 工具函数 ===
 
-def validate_action(device: str, action: str, value: Optional[int]):
+def validate_action(device: str, action: str, value):
     """验证动作和参数"""
     if action not in DEVICE_ACTIONS.get(device, []):
         raise HTTPException(
@@ -609,8 +890,25 @@ def validate_action(device: str, action: str, value: Optional[int]):
             detail={"error_code": "MISSING_VALUE", "message": f"动作 '{action}' 需要数值参数"}
         )
 
-    if action in VALUE_RANGES and value is not None:
-        min_val, max_val, name = VALUE_RANGES[action]
+    # 密码特殊验证
+    if action == "password" and value is not None:
+        pwd = str(value)
+        if not pwd.isdigit() or len(pwd) < 4 or len(pwd) > 8:
+            raise HTTPException(
+                status_code=400,
+                detail={"error_code": "INVALID_VALUE", "message": "密码必须为4-8位数字"}
+            )
+        return
+
+    # 数值范围验证
+    if value is not None:
+        range_key = (device, action)
+        if range_key in DEVICE_VALUE_RANGES:
+            min_val, max_val, name = DEVICE_VALUE_RANGES[range_key]
+        elif action in VALUE_RANGES:
+            min_val, max_val, name = VALUE_RANGES[action]
+        else:
+            return
         if not (min_val <= value <= max_val):
             raise HTTPException(
                 status_code=400,
@@ -618,7 +916,7 @@ def validate_action(device: str, action: str, value: Optional[int]):
             )
 
 
-def execute_action(device: str, action: str, value: Optional[int]) -> dict:
+def execute_action(device: str, action: str, value) -> dict:
     """执行设备动作"""
     state = device_states[device]
 
@@ -636,6 +934,18 @@ def execute_action(device: str, action: str, value: Optional[int]) -> dict:
         state["volume"] = value
     elif action == "play":
         state["playing"] = True
+    elif action == "unlock":
+        state["locked"] = False
+    elif action == "lock":
+        state["locked"] = True
+    elif action == "password":
+        state["password"] = str(value)
+    elif action == "mode":
+        state["mode"] = value
+    elif action == "speed":
+        state["speed"] = value
+    elif action == "oscillate":
+        state["oscillating"] = bool(value)
 
     return state.copy()
 
@@ -737,6 +1047,13 @@ cd /root/new_skill/home-control
 python scripts/home_control.py light on
 python scripts/home_control.py 空调 温度 24
 python scripts/home_control.py speaker play
+python scripts/home_control.py 门锁 开锁
+python scripts/home_control.py lock password 654321
+python scripts/home_control.py 扫地机器人 模式 2
+python scripts/home_control.py purifier speed 3
+python scripts/home_control.py 风扇 风速 2
+python scripts/home_control.py 插座 开
+python scripts/home_control.py switch off
 ```
 
 ---
